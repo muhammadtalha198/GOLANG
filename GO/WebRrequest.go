@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -17,7 +18,12 @@ func main() {
 	}
 
 	fmt.Printf("Response is of typ: %T\n", response)
-	response.Body.Close()
-	
+	defer response.Body.Close()
 
+	dataBytes, err := io.ReadAll(response.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(string(dataBytes))
 }
