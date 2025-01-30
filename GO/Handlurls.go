@@ -32,4 +32,14 @@ func main() {
 	for key, values := range qparams {
 		fmt.Printf("Key: %s, Values: %v\n", key, values)
 	}
+
+	partsOfUrl := &url.URL{
+		Scheme:  "https",
+		Host:    "looc.dev",
+		Path:    "/tutcss",
+		RawPath: "user=muhammad",
+	}
+
+	realUrl := partsOfUrl.String()
+	fmt.Println(realUrl)
 }
