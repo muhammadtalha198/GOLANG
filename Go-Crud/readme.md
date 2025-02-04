@@ -1,0 +1,5 @@
+- go getgithub.com/githubnemo/CompileDaemon@latest
+- go install github.com/githubnemo/CompileDaemon@latest
+- go get github.com/joho/godotenv
+- go get -u github.com/gin-gonic/gin
+- go get -u gorm.io/gorm
