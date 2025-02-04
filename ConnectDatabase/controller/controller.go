@@ -2,11 +2,14 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 
 	"connectDatabase/model"
 
+	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -99,6 +102,74 @@ func deleteAllmovies() int64 {
 }
 
 // get all movies from the data base
-func getAllMovies() {
+func getAllMovies() []primitive.M {
 
+	cursor, err := collection.Find(context.Background(), bson.D{{}})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	var movies []primitive.M
+
+	for cursor.Next((context.Background())) {
+
+		var movie bson.M
+		err := cursor.Decode(&movie)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		movies = append(movies, movie)
+	}
+
+	defer cursor.Close(context.Background())
+	return movies
+}
+
+// Actual Controllers
+
+func GetAllMovies(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Conetent-Type", "application/x-www-form-urlearncode")
+
+	allMovies := getAllMovies()
+	json.NewEncoder(w).Encode(allMovies)
+
+}
+
+func CreateMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Conetent-Type", "application/x-www-form-urlearncode")
+	w.Header().Set("Allow-Control-Allow-Methods", "POST")
+
+	var movie model.Netflix
+	_ = json.NewDecoder(r.Body).Decode(&movie)
+	insertOneMovie(movie)
+	json.NewEncoder(w).Encode(movie)
+
+}
+
+func MarkedAsWatched(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Conetent-Type", "application/x-www-form-urlearncode")
+	w.Header().Set("Allow-Control-Allow-Methods", "PUT")
+
+	params := mux.Vars(r)
+	updateOneMovie(params["id"])
+	json.NewEncoder(w).Encode(params["id"])
+}
+
+func DeleteAMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Conetent-Type", "application/x-www-form-urlearncode")
+	w.Header().Set("Allow-Control-Allow-Methods", "DELETE")
+
+	params := mux.Vars(r)
+	deleteOneMovie(params["id"])
+	json.NewEncoder(w).Encode(params["id"])
+}
+
+func DeleteAllMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Conetent-Type", "application/x-www-form-urlearncode")
+	w.Header().Set("Allow-Control-Allow-Methods", "DELETE")
+
+	count := deleteAllmovies()
+	json.NewEncoder(w).Encode(count)
 }
