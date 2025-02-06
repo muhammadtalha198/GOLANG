@@ -85,7 +85,49 @@ func (db *Database) UpdateTodoList(todoId string, todolist *model.Todo) error {
 	fmt.Println("modified count : ", result.ModifiedCount)
 
 	return nil
-
 }
 
+func (db *Database) deleteTodo(todoId string) error {
 
+	_, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	id, err := primitive.ObjectIDFromHex(todoId)
+
+	if err != nil {
+		log.Fatal(err)
+		return err
+	}
+
+	filterId := bson.M{"_id": id}
+
+	deleteCount, err1 := db.collection.DeleteOne(context.Background(), filterId)
+
+	if err1 != nil {
+		log.Fatal(err1)
+		return err1
+	}
+
+	fmt.Print("Movie got deleted count : ", deleteCount)
+
+	return nil
+}
+
+func (db *Database) deleteTodoAll() int64 {
+
+	_, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	filterId := bson.D{{}}
+
+	deleteResult, err1 := db.collection.DeleteMany(context.Background(), filterId, nil)
+
+	if err1 != nil {
+		log.Fatal(err1)
+
+	}
+
+	fmt.Print("Movie got deleted count : ", deleteResult)
+
+	return deleteResult.DeletedCount
+}
