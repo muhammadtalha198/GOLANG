@@ -131,3 +131,57 @@ func (db *Database) deleteTodoAll() int64 {
 
 	return deleteResult.DeletedCount
 }
+
+func (db *Database) GetTodoById(todoId string) (*model.Todo, error) {
+
+	_, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	id, err := primitive.ObjectIDFromHex(todoId)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var todolist model.Todo
+
+	filterId := bson.M{"_id": id}
+
+	err = db.collection.FindOne(context.Background(), filterId).Decode(&todolist)
+
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return &todolist, nil
+}
+
+func (db *Database) GetAllTodos() ([]model.Todo, error) {
+	_, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var todolists []model.Todo
+
+	filterId := bson.D{{}}
+
+	cursor, err := db.collection.Find(context.TODO(), filterId)
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+
+	for cursor.Next(context.Background()) {
+		var todolist model.Todo
+		err := cursor.Decode(&todolist)
+		if err != nil {
+			log.Fatal(err)
+			return nil, err
+		}
+		todolists = append(todolists, todolist)
+	}
+	defer cursor.Close(context.Background())
+
+	return todolists, nil
+
+}
