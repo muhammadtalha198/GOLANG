@@ -22,4 +22,3 @@ func main() {
 		log.Fatal("Server failed to start: ", err)
 	}
 }
-
