@@ -13,3 +13,14 @@ type Todo struct {
 	CreatedAt time.Time          `json:"created_at,omitempty" bson:"created_at,omitempty"`
 	UpdatedAt time.Time          `json:"updated_at,omitempty" bson:"updated_at,omitempty"`
 }
+
+// Exported IsEmpty method for the Todo struct
+func (t *Todo) IsEmpty() bool {
+	return t.Task == ""
+}
+
+// Define the Response struct
+type Response struct {
+	Msg  string `json:"msg"`
+	Code int    `json:"code"`
+}
