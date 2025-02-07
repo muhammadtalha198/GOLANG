@@ -186,3 +186,5 @@ func (db *Database) GetAllTodos() ([]model.Todo, error) {
 	return todolists, nil
 
 }
+
+
