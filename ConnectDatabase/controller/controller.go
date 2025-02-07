@@ -1,99 +1,175 @@
 package controller
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
 
-	helper "github.com/muhammadtalha198/todaapp/Helper"
-	model "github.com/muhammadtalha198/todaapp/Model"
-	connectdb "github.com/muhammadtalha198/todaapp/connectDb"
+	"connectDatabase/model"
+
+	"github.com/gorilla/mux"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var todolist model.Todo
+const connectionString = "mongodb+srv://admin:12345@cluster0.zqufr.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
-// Simple function to test that APIs are working
-func healthCheck(w http.ResponseWriter, r *http.Request) {
+const dbName = "netflix"
+const colName = "watchList"
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Methods", "GET")
+// Most Important
+var collection *mongo.Collection
 
-	res := model.Response{
-		Msg:  "Health Check",
-		Code: 200,
+func init() {
+	//_client options
+	clientOptions := options.Client().ApplyURI(connectionString)
+
+	//connect to mongo db
+	_client, err := mongo.Connect(context.TODO(), clientOptions)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Mongo db connected successfully.")
+
+	collection = _client.Database(dbName).Collection(colName)
+
+	//collection instance
+	fmt.Println("connection instance is ready!")
+}
+
+//MONGO dB Helpers- file
+
+// insert one record
+func insertOneMovie(movie model.Netflix) {
+	// Example insert logic
+	inserted, err := collection.InsertOne(context.TODO(), movie)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Inserted a single movie: ", inserted.InsertedID)
+}
+
+// update one record
+
+func updateOneMovie(movieId string) {
+	id, err := primitive.ObjectIDFromHex(movieId)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	filter := bson.M{"_id": id}
+	update := bson.M{"$set": bson.M{"watched": true}}
+
+	result, err1 := collection.UpdateOne(context.Background(), filter, update)
+
+	if err1 != nil {
+		log.Fatal(err1)
 	}
 
-	json.NewEncoder(w).Encode(res)
+	fmt.Println("modified count : ", result.ModifiedCount)
 
 }
 
-func CreateTodoHandler(w http.ResponseWriter, r *http.Request) {
+// delete one record for now
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Methods", "POST")
+func deleteOneMovie(movieId string) {
+	id, _ := primitive.ObjectIDFromHex(movieId)
 
-	// Check if the body is empty
-	if r.Body == nil {
-		json.NewEncoder(w).Encode("please send some data.")
-		return
-	}
+	filter := bson.M{"_id": id}
 
-	var todolist model.Todo
-
-	err := json.NewDecoder(r.Body).Decode(&todolist)
+	deleteCount, err := collection.DeleteOne(context.Background(), filter)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		log.Fatal(err)
 	}
+	fmt.Print("Movie got deleted count : ", deleteCount)
 
-	if todolist.IsEmpty() {
-		json.NewEncoder(w).Encode("no data inside json.")
-		return
-	}
-
-	// Create a Database instance with the initialized collection
-	db := helper.Database{
-		Collection: connectdb.ConnectDB(),
-	}
-
-	err = db.CreateTodo(todolist)
-	if err != nil {
-		json.NewEncoder(w).Encode("Failed to create todo")
-		return
-	}
-
-	json.NewEncoder(w).Encode("Todo created successfully")
-
-	// return todolist.Id;
-
-	// // Include the ID in the response
-	// response := map[string]interface{}{
-	// 	"message": "Todo created successfully",
-	// 	"id":      todolist.Id,
-	// }
-
-	// json.NewEncoder(w).Encode(response)
 }
 
-// func CreateTodoCustom(w http.ResponseWriter, r *http.Request) {
-// 	// Implementation here
-// }
+// delete all ogf the movies
+func deleteAllmovies() int64 {
+	deleteResult, err := collection.DeleteMany(context.Background(), bson.D{{}}, nil)
 
-// func UpdateTodoList(w http.ResponseWriter, r *http.Request) {
-// 	// Implementation here
-// }
+	if err != nil {
+		log.Fatal(err)
+	}
 
-// func DeleteTodo(w http.ResponseWriter, r *http.Request) {
-// 	// Implementation here
-// }
+	fmt.Println("Numbr of movies delete: ", deleteResult.DeletedCount)
+	return deleteResult.DeletedCount
+}
 
-// func DeleteTodoAll(w http.ResponseWriter, r *http.Request) {
-// 	// Implementation here
-// }
+// get all movies from the data base
+func getAllMovies() []primitive.M {
 
-// func GetTodoById(w http.ResponseWriter, r *http.Request) {
-// 	// Implementation here
-// }
+	cursor, err := collection.Find(context.Background(), bson.D{{}})
 
-// func getAllTodosetAllTodos(w http.ResponseWriter, r *http.Request) {
-// 	// Implementation here
-// }
+	if err != nil {
+		log.Fatal(err)
+	}
+	var movies []primitive.M
+
+	for cursor.Next((context.Background())) {
+
+		var movie bson.M
+		err := cursor.Decode(&movie)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		movies = append(movies, movie)
+	}
+
+	defer cursor.Close(context.Background())
+	return movies
+}
+
+// Actual Controllers
+
+func GetAllMovies(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Conetent-Type", "application/x-www-form-urlearncode")
+
+	allMovies := getAllMovies()
+	json.NewEncoder(w).Encode(allMovies)
+
+}
+
+func CreateMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Conetent-Type", "application/x-www-form-urlearncode")
+	w.Header().Set("Allow-Control-Allow-Methods", "POST")
+
+	var movie model.Netflix
+	_ = json.NewDecoder(r.Body).Decode(&movie)
+	insertOneMovie(movie)
+	json.NewEncoder(w).Encode(movie)
+
+}
+
+func MarkedAsWatched(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Conetent-Type", "application/x-www-form-urlearncode")
+	w.Header().Set("Allow-Control-Allow-Methods", "PUT")
+
+	params := mux.Vars(r)
+	updateOneMovie(params["id"])
+	json.NewEncoder(w).Encode(params["id"])
+}
+
+func DeleteAMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Conetent-Type", "application/x-www-form-urlearncode")
+	w.Header().Set("Allow-Control-Allow-Methods", "DELETE")
+
+	params := mux.Vars(r)
+	deleteOneMovie(params["id"])
+	json.NewEncoder(w).Encode(params["id"])
+}
+
+func DeleteAllMovie(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Conetent-Type", "application/x-www-form-urlearncode")
+	w.Header().Set("Allow-Control-Allow-Methods", "DELETE")
+
+	count := deleteAllmovies()
+	json.NewEncoder(w).Encode(count)
+}
