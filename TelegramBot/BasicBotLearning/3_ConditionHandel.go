@@ -56,31 +56,20 @@ func main() {
 }
 
 func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
-	if message.Text == "/start" {
-		startBot(bot, message)
+
+	if message.Chat.ID != 0 { // Assuming the bot has been started if the chat ID is not zero
 		handlecommands(bot, message)
 	} else {
-		msg := tgbotapi.NewMessage(message.Chat.ID, "Please start the bot with this cmd! /start")
-		_, err := bot.Send(msg) // Send the response
-
-		if err != nil {
-			log.Printf("Failed to send message: %v", err)
-		}
-	}
-}
-
-func startBot(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
-
-	msg := tgbotapi.NewMessage(message.Chat.ID, "Welcome! Use /help to see available commands.")
-	_, err := bot.Send(msg)
-	if err != nil {
-		log.Printf("Failed to send message: %v", err)
+		log.Printf("BOT NOT STARTED !")
 	}
 }
 
 func handlecommands(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 
 	switch message.Text {
+
+	case "/start":
+		startBot(bot, message)
 
 	case "hello":
 
@@ -92,16 +81,20 @@ func handlecommands(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 
 	case "/help":
 
-		msg := tgbotapi.NewMessage(message.Chat.ID, "Available commands:\n/exit - exit the bot\n/about - About the bot\n/hello - say hello to you\n")
+		msg := tgbotapi.NewMessage(message.Chat.ID, "Available commands:\n/exit - exit the bot\n/start - welcome message\n/hello - say hello to you\n")
 		_, err := bot.Send(msg) // Send the response
 
 		if err != nil {
 			log.Printf("Failed to send message: %v", err)
 		}
 
+	case "/exit":
+		log.Println("Exiting bot...")
+		os.Exit(0)
+
 	default:
 
-		msg := tgbotapi.NewMessage(message.Chat.ID, "This is a simple Telegram bot written in Go!")
+		msg := tgbotapi.NewMessage(message.Chat.ID, "see commands b y type /help!")
 		_, err := bot.Send(msg) // Send the response
 
 		if err != nil {
@@ -109,4 +102,13 @@ func handlecommands(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 		}
 	}
 
+}
+
+func startBot(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
+
+	msg := tgbotapi.NewMessage(message.Chat.ID, "Welcome! Use /help to see available commands.")
+	_, err := bot.Send(msg)
+	if err != nil {
+		log.Printf("Failed to send message: %v", err)
+	}
 }
